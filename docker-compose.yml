@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  dbs:
+    env_file:
+      - .env
+
+    container_name: dbs
+    image: postgres:16.1-bookworm
+
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+      PG_DATA: /var/lib/postgresql/data
+
+    restart: unless-stopped
+
+    expose:
+      - 5432
+
+    networks:
+      - dbsn
+
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  api:
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+
+    container_name: api
+    build:
+      context: .
+      dockerfile: backend/dockerfile
+      target: prod
+
+    volumes:
+      - ./backend:/var/api
+
+    ports:
+      - 3000:3000
+
+    networks:
+      - apin
+      - dbsn
+
+    depends_on:
+      - dbs
+
+    command: ["pm2-runtime", "dist/main.js"]
+
+
+networks:
+  dbsn:
+    name: dbs
+
+  apin:
+    name: api
+
+
+
+volumes:
+  data:
